@@ -138,7 +138,7 @@ namespace AdSync
         public int? PrimaryGroupId { get; set; }
         public int? PrimaryGroupToken { get; set; }
 
-        public long Version { get; set; }
+        public int Version { get; set; }
         [JsonIgnore]
         public bool IsGroup => DirectMembersTags?.Count > 0 || DirectMembersDeferredDn?.Count > 0 ||
                 SamAccountType == Types.SamAccountTypeEnum.Group || SamAccountType == Types.SamAccountTypeEnum.NonSecurityGroup ||
@@ -174,7 +174,7 @@ namespace AdSync
             "pkt", "msdfs-targetlistv2", "msdfs-generationguidv2", "msdfs-linkidentityguidv2", "securityidentifier", "dnsproperty", "dnsrecord",
             "marshalledinterface", "dplicense", "serviceclassinfo", "serviceclassid", "winsockaddresses", "serviceinstanceversion",
             "msds-allowedtoactonbehalfofotheridentity","msds-managedpasswordpreviousid", "msds-managedpasswordid", "msds-groupmsamembership",
-            "msds-generationid"
+            "msds-generationid", "msds-deviceid", "msds-cloudanchor", "replicationsignature"
         }, StringComparer.OrdinalIgnoreCase);
 
         private static readonly string[] EmptyArray = { };
@@ -232,7 +232,7 @@ namespace AdSync
         [JsonIgnore]
         private Dictionary<string, Types.RangedAttribute> _rangeAttributes;
         public static HashSet<string> _seenRangeAttributes = new HashSet<string>(5);
-        public Entry(SearchResultEntry e, bool isChangeNotified, bool allAttributesLoaded, IEnumerable<string> otherAttributesToLoad, AdSync adSync)
+        public Entry(SearchResultEntry e, bool isChangeNotified, bool allAttributesLoaded, IEnumerable<string> otherAttributesToLoad, AdSync adSync, int version)
         {
             try
             {
@@ -246,6 +246,7 @@ namespace AdSync
                         _seenRangeAttributes.Add(rangedAttribute.BaseName);
                     }
                 }
+                Version = version;
                 Tag = -1;
                 Dn = e?.DistinguishedName;
                 DomainFlatName = Types.FromStringValue(e, "flatName", true);

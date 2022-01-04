@@ -9,6 +9,7 @@ using System.DirectoryServices.ActiveDirectory;
 using System.DirectoryServices.AccountManagement;
 using System.Text.RegularExpressions;
 using System.IO;
+using AdSyncTest.Properties;
 
 namespace AdSyncTest
 {
@@ -50,6 +51,7 @@ namespace AdSyncTest
         }
         static void Main(string[] args)
         {
+            Console.WriteLine($"Started: {DateTime.Now}");
             //var ex = new DynamicExpression("A + B", ExpressionLanguage.Csharp);
             //var ctx = new ExpressionContext();
             //var bex = ex.Bind(ctx);
@@ -66,17 +68,16 @@ namespace AdSyncTest
             //var forestTrusts = currentForest.GetAllTrustRelationships();
 
             //var lanSync = new AdSync.AdSync("lan.local", null, null);
-            var goaSync = new AdSync.AdSync("goa.ds.gov.ab.ca", null, true 
-                //, new string[] {
-                //"albertaGenericAttribute5", // employee id (should match employeeID attribute)
-                //"albertaGenericAttribute24", // "[P]erson, [N]on-Person"
-                //"extensionAttribute6", // location (eg B9125A - A5342)
-                //"msExchExtensionAttribute22", // job classification code (eg "M42Z1")
-                //"msExchExtensionAttribute23", // building code (eg "B9125A")
-                //"msExchExtensionAttribute24", // building office location code (eg "A5342")
-                //"msExchExtensionAttribute20" // building office location text (eg "Commerce Place, Third Floor 10155 - 102 Street Edmonton, Alberta, Canada T5J 4G8")
-                //}
-            );
+            var goaSync = new AdSync.AdSync("goa.ds.gov.ab.ca", null, true, TimeSpan.FromMinutes(Settings.Default.UpdateFileIntervalMinutes));
+            //, new string[] {
+            //"albertaGenericAttribute5", // employee id (should match employeeID attribute)
+            //"albertaGenericAttribute24", // "[P]erson, [N]on-Person"
+            //"extensionAttribute6", // location (eg B9125A - A5342)
+            //"msExchExtensionAttribute22", // job classification code (eg "M42Z1")
+            //"msExchExtensionAttribute23", // building code (eg "B9125A")
+            //"msExchExtensionAttribute24", // building office location code (eg "A5342")
+            //"msExchExtensionAttribute20" // building office location text (eg "Commerce Place, Third Floor 10155 - 102 Street Edmonton, Alberta, Canada T5J 4G8")
+            //}
 
             //Task.WaitAll(lanSync.BulkLoadTask, goaSync.BulkLoadTask);
             Task.WaitAll(goaSync.BulkLoadTask);
@@ -175,6 +176,7 @@ namespace AdSyncTest
             Console.WriteLine("Enter \"x\" to exit.");
             do
             {
+                if (string.Equals(Console.ReadLine(), "x")) break;
 
                 //foreach (var p in lanSync.Store.Manages(lanSync.Store.GetBySamAccountName("Mike.Emery")))
                 //    Console.WriteLine($"Mike manages: {p.SamAccountName}");
@@ -201,7 +203,6 @@ namespace AdSyncTest
                 //foreach (var obj in lanSync.Store.ObjectsSnapshot.Where(obj => (((obj.UserAccountControl ?? 0) & AdStore.UserAccountControlFlags.AccountDisabled) == 0) && obj.SamAccountType == AdStore.SamAccountTypeEnum.UserAccount && DateTime.UtcNow.Subtract(obj.LastLogonTimeStamp ?? DateTime.MinValue).TotalDays > 365).OrderByDescending(obj => DateTime.UtcNow.Subtract(obj.LastLogonTimeStamp ?? DateTime.MinValue).TotalDays))
 
 
-                if (string.Equals(Console.ReadLine(), "x")) break;
                 //foreach (var obj in goaSync.Store.ObjectsSnapshot.Where(obj => obj.SamAccountType == AdStore.SamAccountTypeEnum.UserAccount &&  (obj.Email?.EndsWith("@gov.ab.ca", StringComparison.OrdinalIgnoreCase) ?? false)))
                 //    Console.WriteLine(obj.SamAccountName);
             } while (true);

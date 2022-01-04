@@ -9,11 +9,20 @@ using System.Data.SqlClient;
 using Newtonsoft.Json;
 using Health.Abstractions;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
+using Microsoft.SqlServer.Server;
+using System.Data;
 
 namespace AdSync
 {
     public class AdStore
     {
+        public class CacheFile
+        {
+            public string ServerName { get; set; }
+            public int MaxVersionSaved { get; set; }
+            public List<Entry> EntryList { get; set; }
+        }
         public object SyncRoot { get; }
 
         public AdSync AdSync { get; }
@@ -30,7 +39,7 @@ namespace AdSync
 
         private readonly IMetricTimer _hiLoadFromFile;
         private readonly IMetricTimer _hiWriteToFile;
-
+        private int _version { get; set; }
         public FileInfo CacheFileInfo { get; }
         public StreamWriter CacheLog { get; }
         private readonly List<Entry> _objByTag;
@@ -557,12 +566,62 @@ namespace AdSync
         }
         private static bool AreSetsEqual<T>(HashSet<T> x, HashSet<T> y) => (x == null && y == null) || (x != null && y != null && x.SetEquals(y));
 
+        private static int MaxVersionSaved { get; set; } = -1;
+        private static int _maxVersion { get; set; }
+        private static IEnumerable<SqlDataRecord> CreateSqlDataRecords(IEnumerable<(int tag, int version, string json)> blobs)
+        {
+            SqlMetaData[] metaData = new SqlMetaData[3];
+            metaData[0] = new SqlMetaData("Tag", SqlDbType.Int);
+            metaData[1] = new SqlMetaData("Version", SqlDbType.Int);
+            metaData[2] = new SqlMetaData("Json", SqlDbType.NVarChar, -1);
+            SqlDataRecord record = new SqlDataRecord(metaData);
+            foreach (var r in blobs)
+            {
+                record.SetInt32(0, r.tag);
+                record.SetInt32(1, r.version);
+                record.SetSqlString(2, r.json);
+                if (r.version > MaxVersionSaved)
+                {
+                    _maxVersion = r.version > _maxVersion ? r.version : _maxVersion;
+                    yield return record;
+                }            
+            }
+        }
+
+        private static IEnumerable<(int tag, int version, string json)> ReadJsonObjects (FileInfo fileInfo)
+        {
+            using (var fr = fileInfo.OpenText())
+            {
+                using (var jr = new JsonTextReader(fr))
+                {
+                    while (jr.Read())
+                    {
+                        if (jr.TokenType == JsonToken.PropertyName && jr.Value.Equals("EntryList"))
+                            break;
+                    }
+                    while (jr.Read())
+                    {
+                        if (jr.TokenType == JsonToken.StartObject)
+                        {
+                            // Load each object from the stream and do something with it
+                            var obj = JObject.Load(jr);
+                            int.TryParse(obj["Tag"].ToString(), out var tag);
+                            int.TryParse(obj["Version"].ToString(), out var version);
+                            yield return (tag, version, obj.ToString());
+                        }
+                    };
+                };
+            }
+        }
+
         public void AddOrUpdate(SearchResultEntry newEntry, bool isChangeNotified)
         {
             _hiAddOrUpdate?.Increment();
             try
             {
-                var e = new Entry(newEntry, isChangeNotified, LoadAllAttributes, OtherAttributes, AdSync);
+                if (isChangeNotified)
+                    _version++;
+                var e = new Entry(newEntry, isChangeNotified, LoadAllAttributes, OtherAttributes, AdSync, isChangeNotified ? _version : 0);
                 if (e.ObjectGuid == Guid.Empty) return;
                 // if entry has a samaccountname and no flatname add the flatname for the domain...
                 if (!string.IsNullOrEmpty(e.SamAccountName) &&
@@ -692,14 +751,20 @@ namespace AdSync
                                 Formatting = Formatting.Indented,
                                 ContractResolver = new ShouldSerializeContractResolver()
                             };
-                            ser.Serialize(jsonWriter, _objByTag);
+                            var cacheFile = new CacheFile()
+                            {
+                                ServerName = AdSync.ServerName,
+                                EntryList = _objByTag,
+                                MaxVersionSaved = MaxVersionSaved
+                            };
+                            ser.Serialize(jsonWriter, cacheFile);
                             jsonWriter.Flush();
                         }
                     }
                     Console.WriteLine($"Range Attributes Seen: {string.Join(",", Entry._seenRangeAttributes)}");
                     Console.WriteLine("Dumping to SQL started");
-                    var topLevelAttr = 
-                        "Tag I" + 
+                    var topLevelAttr =
+                        "Tag I" +
                         ",Dn N" +
                         ",Class N" +
                         ",WhenCreated D" +
@@ -755,7 +820,7 @@ namespace AdSync
                         ",DeferedCount I" +
                         ",PrimaryGroupId I" +
                         ",PrimaryGroupToken I" +
-                        ",Version L";
+                        ",Version I";
                     var tl = new Dictionary<string, string> {
                         {"N","NVARCHAR(MAX)"}, {"I", "INT"}, {"D", "DATETIME2"}, {"G", "UNIQUEIDENTIFIER"}, {"L", "BIGINT"}, {"T", "BIT"}, {"B", "VARBINARY(MAX)" }
                     };
@@ -764,21 +829,26 @@ namespace AdSync
                         .Concat(Entry.KnownTextAttributes.Select(a => $"[{a}] NVARCHAR(MAX) '$.OtherAttributesText.\"{a}\"'")));
 
                     //Console.WriteLine(schema);
+                    Console.WriteLine($"Started Sql Dump: {DateTime.Now} MaxVersionSaved={MaxVersionSaved}");
                     using (SqlConnection con = new SqlConnection(Properties.Settings.Default.Db))
                     {
                         con.Open();
                         using (SqlCommand cmd = new SqlCommand("dbo.LoadAdJson", con))
                         {
                             cmd.CommandType = System.Data.CommandType.StoredProcedure;
-                            cmd.CommandTimeout = 600;
-                            using (StreamReader file = fileInfo.OpenText())
-                            {
-                                cmd.Parameters.Add("@adJson", System.Data.SqlDbType.NVarChar, -1).Value = file;
-                                cmd.ExecuteNonQuery();
-                            }
+                            cmd.CommandTimeout = 900;
+                            var fullSyncParam = cmd.Parameters.AddWithValue("@fullSync", MaxVersionSaved == -1);
+                            var adParam = cmd.Parameters.AddWithValue("@ad", CreateSqlDataRecords(ReadJsonObjects(fileInfo)));
+                            adParam.SqlDbType = System.Data.SqlDbType.Structured;
+                            adParam.TypeName = "dbo.AdEntity";
+                            cmd.Parameters.AddWithValue("@sourceServer", AdSync?.ServerName ?? "<Unknown>");
+                            cmd.Parameters.AddWithValue("@otherAttributesText", string.Join(",", Entry.KnownTextAttributes));
+                            cmd.Parameters.AddWithValue("@otherAttributesBinary", string.Join(",", Entry.KnownBinaryAttributes));
+                            cmd.ExecuteNonQuery();
                         }
                     }
-                    Console.WriteLine("Dumping to SQL complete");
+                    MaxVersionSaved = _maxVersion;
+                    Console.WriteLine($"Dumping to SQL complete: {DateTime.Now}");
                 }
                 sw?.Success();
             }
@@ -805,7 +875,13 @@ namespace AdSync
                             Formatting = Formatting.Indented,
                             ContractResolver = new ShouldSerializeContractResolver()
                         };
-                        objByTag = ser.Deserialize<List<Entry>>(jsonReader);
+                        var cacheFile = ser.Deserialize<CacheFile>(jsonReader);
+                        objByTag = cacheFile.EntryList;
+                        if (cacheFile.ServerName.Equals(AdSync.ServerName))
+                        {
+                            //_maxVersion = cacheFile.MaxVersionSaved;
+                            //MaxVersionSaved = _maxVersion;
+                        }
                         var tagCount = objByTag?.Count ?? 0;
                         for (var i = 0; i < tagCount; i++)
                             if (objByTag?[i] != null)

@@ -41,6 +41,10 @@ namespace AdSync
         public PipelineFilter<SearchResultEntry, SearchResultEntry> ChangeNotifyProcessingPipeline;
         private AdChangeNotifier _changeNotifier;
         public string ServerName { get; private set; }
+        /// <summary>
+        /// true if the dc server is switched during runtime (due to exceptions)
+        /// </summary>
+        public bool ServerSwitch { get; internal set; }
         public string DomainName { get; }
         public string DomainFlatName { get; }
 
@@ -91,6 +95,7 @@ namespace AdSync
             }
         }
 
+        public TimeSpan UpdateFileInterval { get; set; } = TimeSpan.FromMinutes(5);
         private void ProcessComplete(PipelineFilter<SearchResultEntry, SearchResultEntry> pipeline)
         {
             var sw = _hiBulkLoadComplete?.Start();
@@ -103,7 +108,7 @@ namespace AdSync
                     Store.InitialLoadComplete = true;
                     CacheLogFile.WriteLine($"{DateTimeOffset.Now} Bulk Load compelted");
                     CacheSaverTask?.Terminate();
-                    CacheSaverTask = new BackgroundRepeatingTask(() => { Store.WriteToFile(CacheFileInfo); }, _hiCacheSaverTask, 61*60, 61*60);
+                    CacheSaverTask = new BackgroundRepeatingTask(() => { Store.WriteToFile(CacheFileInfo); }, _hiCacheSaverTask, UpdateFileInterval.TotalSeconds, UpdateFileInterval.TotalSeconds);
                 }
                 CacheSaverTask.ActionCompletedManualResetEvent.Wait();
                 CacheLogFile.WriteLine($"{DateTimeOffset.Now} Cache file updated");
@@ -285,7 +290,8 @@ namespace AdSync
                 var ds = new DirectorySearcher(root, "(objectClass=*)", a)
                 {
                     SearchScope = System.DirectoryServices.SearchScope.Base,
-                    AttributeScopeQuery = attribute
+                    AttributeScopeQuery = attribute,
+                    PageSize = 1000
                 };
                 using (var src = ds.FindAll())
                 {
@@ -313,8 +319,9 @@ namespace AdSync
             }
         }
 
-        public AdSync(string domainName, string serverName, bool loadAllAttributes, IEnumerable<string> attributes = null, FileInfo cacheFileInfo = null, IMetricCollection metricCollection = null)
+        public AdSync(string domainName, string serverName, bool loadAllAttributes, TimeSpan _updateFileInterval, IEnumerable<string> attributes = null, FileInfo cacheFileInfo = null, IMetricCollection metricCollection = null)
         {
+            UpdateFileInterval = _updateFileInterval;
             if (string.IsNullOrWhiteSpace(domainName)) throw new ArgumentOutOfRangeException(nameof(domainName), "domainName must be supplied");
             DomainName = domainName;
             BaseDn = string.Join(",", domainName.Split(".".ToCharArray(), StringSplitOptions.RemoveEmptyEntries).Select(p => "DC=" + p));
@@ -331,7 +338,15 @@ namespace AdSync
             try
             {
                 if (CacheLogFileInfo.Exists)
+                {
+                    var lastServer = "";
+                    using (var lfs = CacheLogFileInfo.OpenRead())
+                        using (var tr = new StreamReader(lfs))
+                            lastServer = tr.ReadLine();
+                    if (lastServer?.Length > 0)
+                        serverName = lastServer;                    
                     CacheLogFileInfo.Delete();
+                }
                 CacheLogFile = CacheLogFileInfo.CreateText();
             }
             catch 
@@ -354,6 +369,7 @@ namespace AdSync
                 swBootstrap?.Failure(e);
             }
             ServerName = LocateDc(serverName);
+            CacheLogFile.WriteLine(ServerName);
             CacheLogFile.WriteLine($"{DateTimeOffset.Now} Syncing domain {domainName} from domain controller {ServerName}");
             Store = new AdStore(this, domainName, DomainFlatName, BaseDn, loadAllAttributes, attributes, CacheFileInfo, CacheLogFile);
             if (string.IsNullOrEmpty(DomainFlatName) && !string.IsNullOrEmpty(Store.DomainFlatName))
@@ -381,7 +397,9 @@ namespace AdSync
                 {
                     _bulkLoader?.Terminate();
                     _changeNotifier?.Terminate();
-                    ServerName = LocateDc(serverName);
+                    var newServerName = LocateDc(serverName);
+                    ServerSwitch = ServerSwitch || !newServerName.Equals(ServerName, StringComparison.OrdinalIgnoreCase);
+                    Console.WriteLine($"Source Server switched to {newServerName} ({ServerSwitch})");
                     InitiateSyncFromDc();
                 }
             }, _hiSyncWatchdog, 5 * 60, 5 * 60);

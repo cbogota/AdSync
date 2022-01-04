@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace AdSync.Properties {
+namespace AdSyncTest.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
@@ -25,12 +25,10 @@ namespace AdSync.Properties {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.SpecialSettingAttribute(global::System.Configuration.SpecialSetting.ConnectionString)]
-        [global::System.Configuration.DefaultSettingValueAttribute("Data Source=c-goa-sql-10044\\sql2019rc1;Initial Catalog=utility;Integrated Securit" +
-            "y=True")]
-        public string Db {
+        [global::System.Configuration.DefaultSettingValueAttribute("5")]
+        public int UpdateFileIntervalMinutes {
             get {
-                return ((string)(this["Db"]));
+                return ((int)(this["UpdateFileIntervalMinutes"]));
             }
         }
     }
