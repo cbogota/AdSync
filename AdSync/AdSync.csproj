@@ -95,20 +95,24 @@
     <Folder Include="Service References\" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\BackgroundTasks\BackgroundTasks.csproj">
-      <Project>{7df0c49e-1d81-43a3-9598-a4727930e0fb}</Project>
+    <ProjectReference Include="..\BackgroundTasks\BackgroundTasks.csproj">
+      <Project>{e56c4dc3-3faf-4bfc-8a52-720ef05f6d97}</Project>
       <Name>BackgroundTasks</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\Collections\Collections.csproj">
-      <Project>{3f80cda3-e39d-463b-9122-04efdce15a8a}</Project>
+    <ProjectReference Include="..\Collections\Collections.csproj">
+      <Project>{866cf255-c067-4cfb-b3c9-2ccfae3bc555}</Project>
       <Name>Collections</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\Health.Abstractions\Health.Abstractions.csproj">
-      <Project>{c33d6636-5e68-402f-83ef-629cfa85f2e7}</Project>
+    <ProjectReference Include="..\Health.Abstractions\Health.Abstractions.csproj">
+      <Project>{ac223035-c97d-4045-ac2c-3050c50b658b}</Project>
       <Name>Health.Abstractions</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\IpAddressingUtility\IpAddressingUtility.csproj">
-      <Project>{8619b30a-24bf-4973-b4c0-7ec740061677}</Project>
+    <ProjectReference Include="..\Health\Health\Health.csproj">
+      <Project>{9b865406-8df1-444d-bf00-474fdb511304}</Project>
+      <Name>Health</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\IpAddressingUtility\IpAddressingUtility.csproj">
+      <Project>{ccffb8dd-687b-402e-aa3d-b54e4e75bf62}</Project>
       <Name>IpAddressingUtility</Name>
     </ProjectReference>
   </ItemGroup>

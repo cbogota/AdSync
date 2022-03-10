@@ -68,7 +68,8 @@ namespace AdSyncTest
             //var forestTrusts = currentForest.GetAllTrustRelationships();
 
             //var lanSync = new AdSync.AdSync("lan.local", null, null);
-            var goaSync = new AdSync.AdSync("goa.ds.gov.ab.ca", null, true, TimeSpan.FromMinutes(Settings.Default.UpdateFileIntervalMinutes));
+            var domain = Environment.GetEnvironmentVariable("USERDNSDOMAIN", EnvironmentVariableTarget.Process);
+            var goaSync = new AdSync.AdSync(domain, null, true, TimeSpan.FromMinutes(Settings.Default.UpdateFileIntervalMinutes));
             //, new string[] {
             //"albertaGenericAttribute5", // employee id (should match employeeID attribute)
             //"albertaGenericAttribute24", // "[P]erson, [N]on-Person"
