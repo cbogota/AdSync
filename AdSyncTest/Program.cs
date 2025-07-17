@@ -69,6 +69,10 @@ namespace AdSyncTest
 
             //var lanSync = new AdSync.AdSync("lan.local", null, null);
             var domain = Environment.GetEnvironmentVariable("USERDNSDOMAIN", EnvironmentVariableTarget.Process);
+            if (args.Length > 0)
+            {
+                domain = args[0];
+            }
             var goaSync = new AdSync.AdSync(domain, null, true, TimeSpan.FromMinutes(Settings.Default.UpdateFileIntervalMinutes));
             //, new string[] {
             //"albertaGenericAttribute5", // employee id (should match employeeID attribute)
@@ -104,10 +108,10 @@ namespace AdSyncTest
                 dumpAccounts.WriteLine($"{reportDomain}\t{e.SamAccountName}\t{e.EmployeeType}\t{e.Department}\t{e.Title}\t{e.Description?.Replace("\r"," ")?.Replace("\n"," ")}");
             }
             dumpAccounts.Close();
-            foreach (var kv in AccountsByEmailDomainAndEmployeeType.OrderBy(kv => kv.Key))
-            {
-                Console.WriteLine($"{kv.Key},{kv.Value.count}");
-            }
+            //foreach (var kv in AccountsByEmailDomainAndEmployeeType.OrderBy(kv => kv.Key))
+            //{
+            //    Console.WriteLine($"{kv.Key},{kv.Value.count}");
+            //}
 
             //var sidIntersect = lanSync.Store.AllSids().Intersect(goaSync.Store.AllSids());
             //foreach (var s in sidIntersect)

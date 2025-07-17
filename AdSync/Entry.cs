@@ -9,6 +9,8 @@ namespace AdSync
 {
     public class Entry
     {
+        [JsonIgnore]
+        private AdSync _adSync { get; set; }
         public int Tag { get; set; }
         public string Dn { get; set; }
         [JsonIgnore]
@@ -110,9 +112,12 @@ namespace AdSync
         [JsonIgnore]
         public string DirectMemberOfsTagsList => string.Join(";", DirectMemberOfsTags?.OrderBy(t => t) ?? Enumerable.Empty<int>());
 
+        // All members of this entry (direct or indirect)
+        [JsonConverter(typeof(OrderedIntHashSetJsonConverter))]
+        public HashSet<int> AllMemberOfsTags => _adSync.Store.AllMemberOfsTags(this);
 
-        //// All groups that this entry is a member of (including indirect membership via nested groups) 
-        //public HashSet<int> AllMembersOfsTags { get; set; }
+        [JsonConverter(typeof(OrderedIntHashSetJsonConverter))]
+        public HashSet<int> AllMembersTags => _adSync.Store.AllMembersTags(this);
 
         private Dictionary<string, string> _otherAttributesText { get; set; }
         private Dictionary<string, byte[]> _otherAttributesBinary { get; set; }
@@ -236,6 +241,7 @@ namespace AdSync
         {
             try
             {
+                _adSync = adSync;
                 _rangeAttributes = new Dictionary<string, Types.RangedAttribute>(2);
                 foreach (string a in e.Attributes.AttributeNames)
                 {
@@ -363,7 +369,8 @@ namespace AdSync
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                Console.WriteLine("Exception Thrown (Entry.cs)");
+                Console.WriteLine(ex.ToString());
             }
         }
 

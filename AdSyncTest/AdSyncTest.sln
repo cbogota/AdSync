@@ -5,16 +5,37 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AdSyncTest", "AdSyncTest.csproj", "{EAA9A5CD-B5E7-427F-9EC1-C3EE8F6D078C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AdSync", "..\AdSync\AdSync.csproj", "{A047DB82-8373-4318-BF65-202B05EC5879}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
+		PUATProjects2|Any CPU = PUATProjects2|Any CPU
 		Release|Any CPU = Release|Any CPU
+		SYSTProjects|Any CPU = SYSTProjects|Any CPU
+		SYSTProjects2|Any CPU = SYSTProjects2|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{EAA9A5CD-B5E7-427F-9EC1-C3EE8F6D078C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{EAA9A5CD-B5E7-427F-9EC1-C3EE8F6D078C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EAA9A5CD-B5E7-427F-9EC1-C3EE8F6D078C}.PUATProjects2|Any CPU.ActiveCfg = Release|Any CPU
+		{EAA9A5CD-B5E7-427F-9EC1-C3EE8F6D078C}.PUATProjects2|Any CPU.Build.0 = Release|Any CPU
 		{EAA9A5CD-B5E7-427F-9EC1-C3EE8F6D078C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EAA9A5CD-B5E7-427F-9EC1-C3EE8F6D078C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EAA9A5CD-B5E7-427F-9EC1-C3EE8F6D078C}.SYSTProjects|Any CPU.ActiveCfg = Release|Any CPU
+		{EAA9A5CD-B5E7-427F-9EC1-C3EE8F6D078C}.SYSTProjects|Any CPU.Build.0 = Release|Any CPU
+		{EAA9A5CD-B5E7-427F-9EC1-C3EE8F6D078C}.SYSTProjects2|Any CPU.ActiveCfg = Release|Any CPU
+		{EAA9A5CD-B5E7-427F-9EC1-C3EE8F6D078C}.SYSTProjects2|Any CPU.Build.0 = Release|Any CPU
+		{A047DB82-8373-4318-BF65-202B05EC5879}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A047DB82-8373-4318-BF65-202B05EC5879}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A047DB82-8373-4318-BF65-202B05EC5879}.PUATProjects2|Any CPU.ActiveCfg = Debug|Any CPU
+		{A047DB82-8373-4318-BF65-202B05EC5879}.PUATProjects2|Any CPU.Build.0 = Debug|Any CPU
+		{A047DB82-8373-4318-BF65-202B05EC5879}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A047DB82-8373-4318-BF65-202B05EC5879}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A047DB82-8373-4318-BF65-202B05EC5879}.SYSTProjects|Any CPU.ActiveCfg = Debug|Any CPU
+		{A047DB82-8373-4318-BF65-202B05EC5879}.SYSTProjects|Any CPU.Build.0 = Debug|Any CPU
+		{A047DB82-8373-4318-BF65-202B05EC5879}.SYSTProjects2|Any CPU.ActiveCfg = Debug|Any CPU
+		{A047DB82-8373-4318-BF65-202B05EC5879}.SYSTProjects2|Any CPU.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

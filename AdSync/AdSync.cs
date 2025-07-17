@@ -399,6 +399,14 @@ namespace AdSync
                     _changeNotifier?.Terminate();
                     var newServerName = LocateDc(serverName);
                     ServerSwitch = ServerSwitch || !newServerName.Equals(ServerName, StringComparison.OrdinalIgnoreCase);
+                    if (_bulkLoader?.InitializeSearchException != null)
+                        Console.WriteLine($"InitializeSearchException: {_bulkLoader?.InitializeSearchException.ToString()}");
+                    if (_bulkLoader?.ReadResultException != null)
+                        Console.WriteLine($"ReadResultException: {_bulkLoader?.ReadResultException.ToString()}");
+                    if (_changeNotifier?.InitializeSearchException != null)
+                        Console.WriteLine($"InitializeSearchException: {_changeNotifier?.InitializeSearchException.ToString()}");
+                    if (_changeNotifier?.ReadResultException != null)
+                        Console.WriteLine($"InitializeSearchException: {_changeNotifier?.ReadResultException.ToString()}");
                     Console.WriteLine($"Source Server switched to {newServerName} ({ServerSwitch})");
                     InitiateSyncFromDc();
                 }

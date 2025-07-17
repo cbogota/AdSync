@@ -588,6 +588,29 @@ namespace AdSync
             }
         }
 
+
+        private static void ReplaceCarriageReturns(JToken token, string replacementChar)
+        {
+            if (token.Type == JTokenType.Object)
+            {
+                foreach (var prop in token.Children<JProperty>())
+                    ReplaceCarriageReturns(prop.Value, replacementChar);
+            }
+            else if (token.Type == JTokenType.Array)
+            {
+                foreach (var item in token.Children())
+                    ReplaceCarriageReturns(item, replacementChar);
+            }
+            else if (token.Type == JTokenType.String)
+            {
+                var str = token.Value<string>();
+                if (str.Contains('\r'))
+                {
+                    ((JValue)token).Value = str.Replace("\r\n", "\r").Replace("\r", replacementChar);
+                }
+            }
+        }
+
         private static IEnumerable<(int tag, int version, string json)> ReadJsonObjects (FileInfo fileInfo)
         {
             using (var fr = fileInfo.OpenText())
@@ -605,6 +628,7 @@ namespace AdSync
                         {
                             // Load each object from the stream and do something with it
                             var obj = JObject.Load(jr);
+                            ReplaceCarriageReturns(obj, "\uE000");
                             int.TryParse(obj["Tag"].ToString(), out var tag);
                             int.TryParse(obj["Version"].ToString(), out var version);
                             yield return (tag, version, obj.ToString());
@@ -833,10 +857,10 @@ namespace AdSync
                     using (SqlConnection con = new SqlConnection(Properties.Settings.Default.Db))
                     {
                         con.Open();
-                        using (SqlCommand cmd = new SqlCommand("dbo.LoadAdJson", con))
+                        using (SqlCommand cmd = new SqlCommand("dbo.LoadAdJsonDomain", con))
                         {
                             cmd.CommandType = System.Data.CommandType.StoredProcedure;
-                            cmd.CommandTimeout = 900;
+                            cmd.CommandTimeout = 3600;
                             var fullSyncParam = cmd.Parameters.AddWithValue("@fullSync", MaxVersionSaved == -1);
                             var adParam = cmd.Parameters.AddWithValue("@ad", CreateSqlDataRecords(ReadJsonObjects(fileInfo)));
                             adParam.SqlDbType = System.Data.SqlDbType.Structured;
@@ -844,6 +868,7 @@ namespace AdSync
                             cmd.Parameters.AddWithValue("@sourceServer", AdSync?.ServerName ?? "<Unknown>");
                             cmd.Parameters.AddWithValue("@otherAttributesText", string.Join(",", Entry.KnownTextAttributes));
                             cmd.Parameters.AddWithValue("@otherAttributesBinary", string.Join(",", Entry.KnownBinaryAttributes));
+                            cmd.Parameters.AddWithValue("@domain", AdSync?.DomainName ?? "<Unknown>");
                             cmd.ExecuteNonQuery();
                         }
                     }
@@ -854,7 +879,8 @@ namespace AdSync
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                Console.WriteLine("Exception Thrown (AdStore.cs)");
+                Console.WriteLine(ex.ToString());
                 sw?.Failure(ex);
             }
         }
