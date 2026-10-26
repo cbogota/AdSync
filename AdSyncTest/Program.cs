@@ -73,28 +73,19 @@ namespace AdSyncTest
             {
                 domain = args[0];
             }
-            var goaSync = new AdSync.AdSync(domain, null, true, TimeSpan.FromMinutes(Settings.Default.UpdateFileIntervalMinutes));
-            //, new string[] {
-            //"albertaGenericAttribute5", // employee id (should match employeeID attribute)
-            //"albertaGenericAttribute24", // "[P]erson, [N]on-Person"
-            //"extensionAttribute6", // location (eg B9125A - A5342)
-            //"msExchExtensionAttribute22", // job classification code (eg "M42Z1")
-            //"msExchExtensionAttribute23", // building code (eg "B9125A")
-            //"msExchExtensionAttribute24", // building office location code (eg "A5342")
-            //"msExchExtensionAttribute20" // building office location text (eg "Commerce Place, Third Floor 10155 - 102 Street Edmonton, Alberta, Canada T5J 4G8")
-            //}
+            var domSync = new AdSync.AdSync(domain, null, true, TimeSpan.FromMinutes(Settings.Default.UpdateFileIntervalMinutes));
 
-            //Task.WaitAll(lanSync.BulkLoadTask, goaSync.BulkLoadTask);
-            Task.WaitAll(goaSync.BulkLoadTask);
+
+            Task.WaitAll(domSync.BulkLoadTask);
 
             Console.WriteLine("BulkLoadCompleted");
 
 
 
             var AccountsByEmailDomainAndEmployeeType = new Dictionary<string, (int count, string names)>();
-            var dumpAccounts = GetTempFile(goaSync.DomainFlatName, "users.tsv");
+            var dumpAccounts = GetTempFile(domSync.DomainFlatName, "users.tsv");
             dumpAccounts.WriteLine("EmailDomain\tSamAccountName\tEmployeeType\tDepartment\tDescription");
-            foreach (var e in goaSync.Store.Objects)
+            foreach (var e in domSync.Store.Objects)
             {
                 if (e.IsGroup || ((e.UserAccountControl & Types.UserAccountControlFlags.AccountDisabled) != 0) || ((e.SamAccountType & Types.SamAccountTypeEnum.UserAccount) == 0))
                     continue;
@@ -108,74 +99,6 @@ namespace AdSyncTest
                 dumpAccounts.WriteLine($"{reportDomain}\t{e.SamAccountName}\t{e.EmployeeType}\t{e.Department}\t{e.Title}\t{e.Description?.Replace("\r"," ")?.Replace("\n"," ")}");
             }
             dumpAccounts.Close();
-            //foreach (var kv in AccountsByEmailDomainAndEmployeeType.OrderBy(kv => kv.Key))
-            //{
-            //    Console.WriteLine($"{kv.Key},{kv.Value.count}");
-            //}
-
-            //var sidIntersect = lanSync.Store.AllSids().Intersect(goaSync.Store.AllSids());
-            //foreach (var s in sidIntersect)
-            //{
-            //    var lanObj = lanSync.Store.ObjectBySid(s);
-            //    var goaObj = goaSync.Store.ObjectBySid(s);
-            //    if (lanObj.Class == "top.foreignSecurityPrincipal" || goaObj.Class == "top.foreignSecurityPrincipal" || string.IsNullOrEmpty(lanObj.SamAccountName) || string.IsNullOrEmpty(goaObj.SamAccountName) || string.Equals(lanObj.Department, goaObj.Department))
-            //        continue;
-            //    Console.WriteLine($"{s}\t{lanObj.SamAccountName} = {goaObj.SamAccountName}");
-            //}
-
-            //using (var connection = CreateConnection(ServerName))
-            //{
-            //    var cts = new CancellationTokenSource();
-            //    Task.Run(() =>
-            //    {
-            //        if (Console.ReadKey(true).KeyChar == 'c')
-            //            cts.Cancel();
-            //    }, cts.Token);
-
-            //    var bulkLoadResults = new BlockingCollection<SearchResultEntry>(new ConcurrentQueue<SearchResultEntry>());
-            //    _bulkLoadProcessingPipeline = new PipelineFilter<SearchResultEntry, SearchResultEntry>(bulkLoadResults,
-            //        ProcessResponse, ProcessComplete, cts.Token, "BulkLoad");
-            //    var bulkLoader = new AsyncSearcher(connection,
-            //        BaseDn,
-            //        "(objectguid=*)",
-            //        AdStore.Attributes.ToArray(),
-            //        1000,
-            //        bulkLoadResults, cts.Token);
-
-            //    var changeNotifyResults = new BlockingCollection<SearchResultEntry>(new ConcurrentQueue<SearchResultEntry>());
-            //    _changeNotifyProcessingPipeline = new PipelineFilter<SearchResultEntry, SearchResultEntry>(changeNotifyResults,
-            //        ProcessResponse, cts.Token, "ChangeNotify");
-            //    var changeNotify = new AdChangeNotifier(connection,
-            //        BaseDn,
-            //        "(objectguid=*)",
-            //        AdStore.Attributes.ToArray(),
-            //        changeNotifyResults, cts.Token);
-
-            //    Parallel.Invoke(_bulkLoadProcessingPipeline.Run, _changeNotifyProcessingPipeline.Run);
-
-
-            //    Console.WriteLine($"Done {_objectCount}\t{_objectsSkipped}");
-            //    Console.WriteLine($"Deferred Count: {Store.DeferredCount()}");
-            //    Console.WriteLine($"Objects Skipped: {_objectsSkipped}");
-            //    foreach (var t in MissingAttributes)
-            //        Console.WriteLine(t.Key + '\t' + t.Value.ToString());
-            //    Console.ReadLine();
-            //    Store.ResolveDeferred();
-            //    Console.WriteLine($"Deferred Count: {Store.DeferredCount()}");
-            //    Console.WriteLine("ObjectsWithDeferrals");
-            //    foreach (var i in Store.ObjectsWithDeferrals())
-            //        Console.WriteLine(i);
-            //    Console.ReadLine();
-            //    Console.WriteLine("DeferredObjects");
-            //    foreach (var i in Store.DeferredObjects())
-            //        Console.WriteLine(i);
-
-            //    Console.WriteLine("Press any key.");
-            //    Console.ReadKey(true);
-            //}
-            //DumpGroup(Store, "Domain Admins");
-            //DumpGroup(Store, "Account Operators");
-            ////DumpGroup(Store, "ADMINUNITS-GPO-ALL_DESKTOP-LOCAL_ADMIN-F");
             Console.WriteLine();
             Console.WriteLine($"Finished at {DateTime.Now.ToLongTimeString()}");
             Console.WriteLine("Enter \"x\" to exit.");
@@ -183,33 +106,8 @@ namespace AdSyncTest
             {
                 if (string.Equals(Console.ReadLine(), "x")) break;
 
-                //foreach (var p in lanSync.Store.Manages(lanSync.Store.GetBySamAccountName("Mike.Emery")))
-                //    Console.WriteLine($"Mike manages: {p.SamAccountName}");
-                //Console.WriteLine($"goa Groups: {goaSync.Store.ObjectsSnapshot.Count(obj => obj.IsGroup)}");
-                //foreach (var recursiveGroup in goaSync.Store.ObjectsSnapshot.Where(obj => goaSync.Store.HasMember(obj, obj)))
-                //    Console.WriteLine($"goa Group in self: {recursiveGroup.Dn}");
-                //Console.WriteLine($"lan Groups: {lanSync.Store.ObjectsSnapshot.Count(obj => obj.IsGroup)}");
-                //foreach (var recursiveGroup in lanSync.Store.ObjectsSnapshot.Where(obj => lanSync.Store.HasMember(obj, obj)))
-                //Console.WriteLine($"lan Group in self: {recursiveGroup.Dn}");
-                //foreach (var line in lanSync.Store.VerifyBacklinks())
-                //    Console.WriteLine(line);
-                foreach (var line in goaSync.Store.VerifyBacklinks())
+                foreach (var line in domSync.Store.VerifyBacklinks())
                     Console.WriteLine(line);
-                //Console.WriteLine(
-                //    $"goa has {goaSync.Store.ObjectsSnapshot.Count(obj => obj.SamAccountType == Types.SamAccountTypeEnum.UserAccount && (obj.Email?.EndsWith("@gov.ab.ca", StringComparison.OrdinalIgnoreCase) ?? false))} users");
-                //Console.WriteLine(
-                //    $"goa has {goaSync.Store.ObjectsSnapshot.Count(obj => obj.SamAccountType == Types.SamAccountTypeEnum.UserAccount && (obj.Email?.EndsWith("@gov.ab.ca", StringComparison.OrdinalIgnoreCase) ?? false) && !string.IsNullOrWhiteSpace(obj.Title))} user with Titles");
-                //Console.WriteLine(
-                //    $"lan has {lanSync.Store.ObjectsSnapshot.Count(obj => obj.SamAccountType == Types.SamAccountTypeEnum.UserAccount && (obj.Email?.EndsWith("@gov.ab.ca", StringComparison.OrdinalIgnoreCase) ?? false))} users");
-                //Console.WriteLine(
-                //    $"lan has {lanSync.Store.ObjectsSnapshot.Count(obj => obj.SamAccountType == Types.SamAccountTypeEnum.UserAccount && (obj.Email?.EndsWith("@gov.ab.ca", StringComparison.OrdinalIgnoreCase) ?? false) && !string.IsNullOrWhiteSpace(obj.Title))} user with Titles");
-                //Console.WriteLine($"{goaSync.Store.ObjectsSnapshot.Count(obj => (((obj.UserAccountControl ?? 0) & Types.UserAccountControlFlags.AccountDisabled) == 0) && obj.SamAccountType == Types.SamAccountTypeEnum.UserAccount && DateTime.UtcNow.Subtract(obj.LastLogonTimeStamp ?? DateTime.MinValue).TotalDays > 365)} GOA accounts not logged on for over a year.");
-                //Console.WriteLine($"{lanSync.Store.ObjectsSnapshot.Count(obj => (((obj.UserAccountControl ?? 0) & Types.UserAccountControlFlags.AccountDisabled) == 0) && obj.SamAccountType == Types.SamAccountTypeEnum.UserAccount && DateTime.UtcNow.Subtract(obj.LastLogonTimeStamp ?? DateTime.MinValue).TotalDays > 365)} LAN accounts not logged on for over a year.");
-                //foreach (var obj in lanSync.Store.ObjectsSnapshot.Where(obj => (((obj.UserAccountControl ?? 0) & AdStore.UserAccountControlFlags.AccountDisabled) == 0) && obj.SamAccountType == AdStore.SamAccountTypeEnum.UserAccount && DateTime.UtcNow.Subtract(obj.LastLogonTimeStamp ?? DateTime.MinValue).TotalDays > 365).OrderByDescending(obj => DateTime.UtcNow.Subtract(obj.LastLogonTimeStamp ?? DateTime.MinValue).TotalDays))
-
-
-                //foreach (var obj in goaSync.Store.ObjectsSnapshot.Where(obj => obj.SamAccountType == AdStore.SamAccountTypeEnum.UserAccount &&  (obj.Email?.EndsWith("@gov.ab.ca", StringComparison.OrdinalIgnoreCase) ?? false)))
-                //    Console.WriteLine(obj.SamAccountName);
             } while (true);
         }
 
